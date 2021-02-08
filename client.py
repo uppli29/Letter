@@ -120,8 +120,22 @@ def send_message():
             ACTIVE = False
             CLIENT.close()
 
-        elif message == '/online':
-            print('Feature yet to be added')
+        elif message == 'online':
+            message = message.encode('utf-8')
+
+            # encrypts the messsage with aes key
+            ct = AES.encrypt(message)
+
+            # compute hash for the message
+            h256 = hashlib.sha256(message).hexdigest()
+
+            msg_and_hash = [ct, h256]
+            # send cipher text and hash to the server
+            CLIENT.send(pickle.dumps(msg_and_hash))
+            name_list = CLIENT.recv(RECV_SIZE)
+            name_list = pickle.loads(name_list)
+            for name in name_list:
+                print(name)
 
         else:  # normal messages
             message = message.encode('utf-8')

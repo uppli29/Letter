@@ -85,8 +85,8 @@ def client_thread(c):
 
         print("Current Users Online:")
 
-        for i in NAME_LIST:
-            print(i)
+        for client, username in CLIENT_LIST.items():
+            print(username)
 
         user_string = "<" + name + "> "
         private_string = "[" + name + "] "  # private message delivery
@@ -117,6 +117,12 @@ def client_thread(c):
 
                 if message == "/bye":  # quit handler
                     quit_message = f" * {name} has left the server.\n"
+                    signal = b'exit'
+                    h256 = hashlib.sha256(signal).hexdigest()
+                    AES = AESCipher((USER_LIST[name])[1])
+                    ct = AES.encrypt(signal)
+                    msg_and_hash = [ct, h256]
+                    c.send(pickle.dumps(msg_and_hash))
                     print(quit_message)
                     del CLIENT_LIST[c]
                     del USER_LIST[name]
@@ -137,11 +143,11 @@ def client_thread(c):
 
     except ConnectionResetError:
         quit_message = f" * {name} has left the server.\n"
+        print(quit_message)
         send_all(quit_message, c)
         c.close()
         del CLIENT_LIST[c]
         del USER_LIST[name]
-        ACTIVE = False
 
 
 # send msg to all users except the current user

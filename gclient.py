@@ -3,13 +3,14 @@ import threading
 import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
+from tkinter import messagebox
 import sys
 import os
 import pickle
 from Crypto.Random import get_random_bytes
 import hashlib
 import bcrypt
-
+from datetime import datetime
 # NOTE ---------------------------custom imports---------------------
 from configs.keygen import key_generation
 from configs.AES import AESCipher
@@ -79,7 +80,7 @@ class Client:
         self.win.title('LetTer')
 
         self.chat_label = tkinter.Label(
-            self.win, text=f'{userName}\'s Chat', bg="lightgray")
+            self.win, text=f'{userName.upper()}\'s Chat', bg="yellow")
         self.chat_label.config(font=("Arial", 12))
         self.chat_label.pack(padx=20, pady=5)
 
@@ -96,38 +97,35 @@ class Client:
         self.input_area.pack(padx=20, pady=5)
 
         self.send_button = tkinter.Button(
-            self.win, text="Send", command=self.write)
+            self.win, text="Send", command=self.write, bg="green")
         self.send_button.config(font=("Arial", 12))
         self.send_button.pack(padx=20, pady=5)
+
+        self.exit_button = tkinter.Button(
+            self.win, text="EXIT", command=self.stop, bg="red")
+        self.exit_button.config(font=("Arial", 12))
+        self.exit_button.pack(padx=20, pady=5)
 
         self.gui_done = True
         self.win.mainloop()
         self.win.protocol('WM_DELETE_WINDOW', self.stop)
 
     def write(self):
+
         # get msg from the user
         message = f"{self.input_area.get('1.0','end')}"
+        h256 = hashlib.sha256(message.encode('utf-8')).hexdigest()
 
-        # quit server
-        if(message == '/bye'):
-            message = message.encode('utf-8')
-            ct = self.AES.encrypt(message)
-            h256 = hashlib.sha256(message).hexdigest()
-            msg_hash = [ct, h256]
-            self.sock.send(pickle.dumps(msg_hash))
-            self.running = False
-            self.win.destroy()
-            self.sock.close()
-            sys.exit(0)
-
-           # normal msg send to server
-        else:
-            msg = message.encode('utf-8')
+        # normal msg send to server
+        lenght = len(message)
+        print(lenght)
+        if len(message) > 1:
+            msg_with_date = message
+            msg_with_date = msg_with_date.encode('utf-8')
             # encrypt msg using session key
-            ct = self.AES.encrypt(msg)
+            ct = self.AES.encrypt(msg_with_date)
 
             # generate hash for the msg
-            h256 = hashlib.sha256(msg).hexdigest()
             msg_hash = [ct, h256]
 
             # send cipher text and hash to the server
@@ -148,6 +146,7 @@ class Client:
         self.win.destroy()
         self.sock.close()
         exit(0)
+        sys.exit(0)
 
     def receive(self):
         while self.running:
@@ -170,10 +169,13 @@ class Client:
                     print('Hash matches verified messages')
                     message = message.decode('utf-8')
                     if self.gui_done:
-                        self.textarea.config(state='normal')
-                        self.textarea.insert('end', message)
-                        self.textarea.yview('end')
-                        self.textarea.config(state='disabled')
+                        if message == 'exit':
+                            self.stop()
+                        else:
+                            self.textarea.config(state='normal')
+                            self.textarea.insert('end', message)
+                            self.textarea.yview('end')
+                            self.textarea.config(state='disabled')
 
                 else:
                     print('ignored')
